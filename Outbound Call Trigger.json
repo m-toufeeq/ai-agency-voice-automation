@@ -1,0 +1,329 @@
+{
+  "name": "Outbound Call Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hubspot",
+        "options": {}
+      },
+      "id": "afd419cd-9dc2-4e13-9a0b-906e11351aef",
+      "name": "Webhook: HubSpot Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1296, -384],
+      "webhookId": "hubspot"
+    },
+    {
+      "parameters": {
+        "jsCode": "const events = $input.item.json.body;\n\nconst importantProperties = [\n  'phone', \n  'firstname', \n  'lastname', \n  'company',\n  'website', \n  'what_services_would_you_like_help_with_' \n];\n\n// 1. CHECK RELEVANCE\nconst isRelevant = events.some(event => {\n  if (event.subscriptionType === 'contact.creation') return true;\n  if (event.subscriptionType === 'contact.propertyChange' && \n      event.propertyName === 'ai_call_trigger' && \n      event.propertyValue === 'Yes') return true;\n  if ((event.subscriptionType === 'contact.propertyChange' || event.subscriptionType === 'object.propertyChange') && \n      importantProperties.includes(event.propertyName)) return true;\n\n  return false;\n});\n\nif (!isRelevant) return [];\n\nreturn {\n  json: {\n    objectId: events[0].objectId,\n    ...$input.item.json\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1072, -384],
+      "id": "5b73a384-7ad5-4b0d-ad2a-62468df1f9c2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "get",
+        "contactId": {
+          "__rl": true,
+          "value": "={{ $json.objectId }}",
+          "mode": "id"
+        },
+        "additionalFields": {
+          "propertiesCollection": {
+            "propertiesValues": {
+              "properties": [
+                "ai_call_trigger",
+                "firstname",
+                "phone",
+                "email",
+                "engagements_last_meeting_booked_campaign"
+              ],
+              "propertyMode": "valueOnly"
+            }
+          }
+        }
+      },
+      "id": "05251542-af92-4e32-9814-ddf2de899150",
+      "name": "Get Contact (Initial)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [-848, -384],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "YOUR_HUBSPOT_CRED_ID",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ $json.properties.email.value }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "ai_call_trigger",
+                "value": "Null"
+              },
+              {
+                "property": "latest_n8n_execution_id",
+                "value": "={{$execution.id}}"
+              }
+            ]
+          }
+        },
+        "options": {}
+      },
+      "id": "8995107c-fbfa-472a-8201-8c2400cee29f",
+      "name": "Reset AI Trigger2",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [-624, -384],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "YOUR_HUBSPOT_CRED_ID",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "id": "0df94fec-5773-4dbc-93cd-ed68e3445ad2",
+      "name": "Wait 5 Mins",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [-400, -384],
+      "webhookId": "72cab387-24a6-448f-bc2f-de76a71cb6ab"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "contact",
+        "operation": "get",
+        "contactId": "={{ $('Code in JavaScript').item.json.objectId }}",
+        "additionalFields": {
+          "properties": [
+            "firstname",
+            "phone",
+            "email",
+            "hs_last_booked_meeting_date",
+            "ai_call_trigger",
+            "latest_n8n_execution_id"
+          ]
+        }
+      },
+      "id": "8827bda6-14df-4e65-8003-ee57ea9e2667",
+      "name": "Get Contact Details",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 1,
+      "position": [-176, -384],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "YOUR_HUBSPOT_CRED_ID",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const properties = $input.first().json.properties;\nconst phoneObj = properties && properties.phone;\nconst phone = phoneObj ? phoneObj.value : null;\n\nif (!phone) {\n  return {\n    json: {\n      ...$input.item.json,\n      hasPhone: false,\n      formattedPhone: null\n    }\n  };\n}\n\nlet cleaned = phone.toString().replace(/\\D/g, '');\nlet finalPhone = cleaned;\n\nif (phone.toString().startsWith('+')) {\n    finalPhone = phone.toString();\n} \nelse if (cleaned.length === 10) {\n  finalPhone = '+1' + cleaned;\n} \nelse if (cleaned.length === 11 && cleaned.startsWith('1')) {\n  finalPhone = '+' + cleaned;\n}\nelse if (cleaned.length > 10) {\n    finalPhone = '+' + cleaned;\n}\n\nreturn {\n  json: {\n    ...$input.item.json,\n    hasPhone: true,\n    formattedPhone: finalPhone\n  }\n};"
+      },
+      "id": "bddb2b8a-8656-4f32-93b4-e29262bcc8b7",
+      "name": "Format Phone (E.164)1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [48, -384]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.hasPhone }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "0644691b-37cd-40bf-9793-a1117a571408",
+      "name": "Phone Exists?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [496, -384]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentExecutionId = $execution.id;\nconst contactProps = $node[\"Get Contact Details\"].json.properties;\nconst lastMeetingStr = contactProps.hs_last_booked_meeting_date ? contactProps.hs_last_booked_meeting_date.value : null;\nconst latestIdOnRecord = contactProps.latest_n8n_execution_id ? contactProps.latest_n8n_execution_id.value : null;\n\nlet shouldCall = true;\n\nif (lastMeetingStr) {\n    const formTime = $node[\"Webhook: HubSpot Lead\"].json.body[0].occurredAt;\n    const lastMeetingTime = parseInt(lastMeetingStr, 10);\n    if (lastMeetingTime > formTime) {\n        shouldCall = false;\n    }\n}\n\nif (latestIdOnRecord && latestIdOnRecord !== currentExecutionId) {\n    shouldCall = false;\n}\n\nreturn {\n    json: {\n        ...$input.item.json,\n        shouldCall: shouldCall\n    }\n};"
+      },
+      "id": "1123e630-12be-48b3-9ecf-ec7492c5ab09",
+      "name": "Check Meeting Time1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, -384]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.shouldCall }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "b6d89b22-4ae6-4708-bbd7-984977b1232c",
+      "name": "No Meeting Booked?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [944, -384]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.retellai.com/v2/create-phone-call",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_RETELL_API_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "from_number",
+              "value": "+12345678900"
+            },
+            {
+              "name": "to_number",
+              "value": "={{ $('Format Phone (E.164)1').item.json.formattedPhone }}"
+            },
+            {
+              "name": "override_agent_id",
+              "value": "YOUR_RETELL_AGENT_ID_HERE"
+            },
+            {
+              "name": "retell_llm_dynamic_variables",
+              "value": "={{ { \"customer_name\": $json.properties.firstname?.value || \"valued customer\" } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ed19365a-7149-4369-a9f8-2e1b44fc8539",
+      "name": "Trigger Retell Call1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1168, -384],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fb99dbc6-69f1-4e3f-8f7b-005aa0992e7c",
+              "leftValue": "={{ $('Get Contact Details').item.json['form-submissions'][0]['page-url'] }}",
+              "rightValue": "https://share.hsforms.com/YOUR_FORM_ID",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "b51393be-f1d7-4b59-8d94-2efddaaa2e10",
+              "leftValue": "={{ $('Get Contact Details').item.json['form-submissions'][0]['form-id'] }}",
+              "rightValue": "YOUR_FORM_UUID_1",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "8274daf3-eb0f-47d2-877e-77d76e5495d8",
+              "leftValue": "={{ $('Get Contact Details').item.json['form-submissions'][0]['form-id'] }}",
+              "rightValue": "YOUR_FORM_UUID_2",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [272, -384],
+      "id": "a5c3c8f8-cb9b-4f35-8a77-60abaaad9d24",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: HubSpot Lead": {
+      "main": [[{"node": "Code in JavaScript","type": "main","index": 0}]]
+    },
+    "Code in JavaScript": {
+      "main": [[{"node": "Get Contact (Initial)","type": "main","index": 0}]]
+    },
+    "Get Contact (Initial)": {
+      "main": [[{"node": "Reset AI Trigger2","type": "main","index": 0}]]
+    },
+    "Reset AI Trigger2": {
+      "main": [[{"node": "Wait 5 Mins","type": "main","index": 0}]]
+    },
+    "Wait 5 Mins": {
+      "main": [[{"node": "Get Contact Details","type": "main","index": 0}]]
+    },
+    "Get Contact Details": {
+      "main": [[{"node": "Format Phone (E.164)1","type": "main","index": 0}]]
+    },
+    "Format Phone (E.164)1": {
+      "main": [[{"node": "If1","type": "main","index": 0}]]
+    },
+    "Phone Exists?1": {
+      "main": [[{"node": "Check Meeting Time1","type": "main","index": 0}]]
+    },
+    "Check Meeting Time1": {
+      "main": [[{"node": "No Meeting Booked?1","type": "main","index": 0}]]
+    },
+    "No Meeting Booked?1": {
+      "main": [[{"node": "Trigger Retell Call1","type": "main","index": 0}],[]]
+    },
+    "If1": {
+      "main": [[{"node": "Phone Exists?1","type": "main","index": 0}]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

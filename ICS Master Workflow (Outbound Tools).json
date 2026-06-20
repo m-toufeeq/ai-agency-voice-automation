@@ -1,0 +1,344 @@
+{
+  "name": "Master Workflow (Outbound Tools)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send_booking_email",
+        "options": {}
+      },
+      "id": "7bbdbaa9-e9b9-4cab-9ac3-700a13bcd69a",
+      "name": "Webhook: send_booking_email",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [2208, 2288]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.args.email_address }}",
+        "subject": "Discovery Call",
+        "emailType": "text",
+        "message": "Hi there,\n\nHere's my personal calendar link so you can grab a time that works best for you:\n\nmeetings.hubspot.com/YOUR_CALENDAR_LINK\n\nReally looking forward to chatting.\n\nTalk soon,\n[Your Name]",
+        "options": {
+          "senderName": "[Your Name]"
+        }
+      },
+      "id": "c2266dff-7e1d-4f46-8e5e-bfe5115204ea",
+      "name": "Send Booking Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2432, 2288],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CRED",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notify_accounting",
+        "options": {}
+      },
+      "id": "ec4b9e22-98e5-4fa0-b296-31461a1af8d3",
+      "name": "Webhook: notify_accounting",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [2208, 2512]
+    },
+    {
+      "parameters": {
+        "sendTo": "team-member1@example.com, team-member2@example.com",
+        "subject": "=URGENT: Invoice Inquiry from {{ $json.body.call.from_number }}",
+        "message": "=Hi Team,\n<br><br>\nA client just called asking about an invoice or billing.\n<br><br>\nPhone: {{ $json.body.call.from_number }}\n<br><br>\nPlease call them back ASAP.\n<br><br>\n- AI Assistant",
+        "options": {
+          "senderName": "[Your Company Name]"
+        }
+      },
+      "id": "ea86e00b-430c-4a88-8cf6-883eb561eacb",
+      "name": "Email Accounting Team",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2432, 2512],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CRED",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "=channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "client-success"
+        },
+        "text": "=@channel our AI agent just sent a discovery call link to our customer.\n\n{{ \"🚀 New Lead (Email)\\nEmail: \" + $json.body.args.email_address + \"\\nStatus: Calendar Link Sent\" }}",
+        "otherOptions": {}
+      },
+      "id": "771dc5d9-b523-46f1-87a2-d6c0f0d870d0",
+      "name": "Slack Alert (Email)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2880, 2288],
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_SLACK_CRED",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@example.com",
+        "subject": "=URGENT: Invoice Inquiry from {{ $json.body.call.from_number }}",
+        "message": "=Hi Team,\n<br><br>\nA client just called asking about an invoice or billing.\n<br><br>\nPhone: {{ $json.body.call.from_number }}\n<br><br>\nPlease call them back ASAP.\n<br><br>\n- AI Assistant",
+        "options": {
+          "senderName": "[Your Name]"
+        }
+      },
+      "id": "482aef0e-9a30-4ffe-9f73-ba5d656b4399",
+      "name": "Email Accounting Team1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2656, 2512],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CRED",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "client-success"
+        },
+        "text": "=@channel our AI agent just sent a discovery call link to our customer.\n\n{{ \"🚀 New Lead (SMS)\\nPhone: \" + ($json.to || $json.body.call.from_number) + \"\\nStatus: Calendar Link Sent\" }}",
+        "otherOptions": {}
+      },
+      "id": "a49c1f07-c31b-421a-a64b-bb3701a1c246",
+      "name": "Slack Alert (SMS)1",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2880, 1968],
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_SLACK_CRED",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send_booking_sms",
+        "options": {}
+      },
+      "id": "efac7978-4e12-4580-bf6e-906ebf584fdd",
+      "name": "Webhook: send_booking_sms1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [2208, 1968]
+    },
+    {
+      "parameters": {
+        "from": "+12345678900",
+        "to": "={{ $json.body.args.phone }}",
+        "message": "Hey, it's [Your Name] from [Your Company]. Here is the link to book your discovery call: https://meetings.hubspot.com/YOUR_CALENDAR_LINK. Don't want to receive any texts? Reply STOP to unsubscribe.",
+        "options": {}
+      },
+      "id": "cce89c28-01e9-4314-ba67-cec1359be607",
+      "name": "SMS (Custom Number)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2656, 1872],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CRED",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "+12345678900",
+        "to": "={{ $('Webhook: send_booking_sms1').item.json.body.call.to_number }}",
+        "message": "Hey, it's [Your Name] from [Your Company]. Here is the link to book your discovery call: https://meetings.hubspot.com/YOUR_CALENDAR_LINK. Don't want to receive any texts? Reply STOP to unsubscribe.",
+        "options": {}
+      },
+      "id": "e5481d3d-8a15-4c04-8cb0-e60bfbd954a9",
+      "name": "SMS (Caller ID)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2656, 2064],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CRED",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "26ec6171-621f-4892-b693-f880b990e733",
+              "leftValue": "={{ $json.body.args.is_num_mentioned }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [2432, 1968],
+      "id": "327e26ca-1c40-4fc8-af4e-5383f45d6d78",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call_ended",
+        "options": {}
+      },
+      "id": "50d5a8cc-65fe-4cfa-8c4a-79bd17d260eb",
+      "name": "Webhook: Call Ended1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [2208, 2832]
+    },
+    {
+      "parameters": {
+        "sendTo": "team1@example.com, team2@example.com",
+        "subject": "=New Outbound AI Call Transcript: {{$json.body.call.to_number}}",
+        "message": "=<div style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;\">\n  <h2 style=\"color: #2c3e50; border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">📞 New Outbound Call Report</h2>\n  <div style=\"background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;\">\n    <p style=\"margin: 0 0 8px 0; font-size: 16px;\"><strong>📱 Caller:</strong> {{$json.body.call.to_number}}</p>\n    <p style=\"margin: 0 0 8px 0; font-size: 16px;\"><strong>⚠️ Status:</strong> {{$json.body.call.call_status}} ({{$json.body.call.disconnection_reason}})</p>\n    <p style=\"margin: 0; font-size: 16px;\"><strong>⏱️ Duration:</strong> {{$json.body.call.duration_ms}} ms</p>\n  </div>\n  <h3 style=\"color: #2c3e50; margin-bottom: 10px;\">📝 Call Summary</h3>\n  <div style=\"background-color: #eef2f5; padding: 15px; border-left: 4px solid #3498db; margin-bottom: 20px; border-radius: 0 8px 8px 0;\">\n    {{$json.body.call.call_analysis.call_summary || 'No summary available.'}}\n  </div>\n  <h3 style=\"color: #2c3e50; margin-bottom: 10px;\">💬 Transcript</h3>\n  <div style=\"background-color: #ffffff; padding: 15px; border: 1px solid #eaeaea; border-radius: 8px; margin-bottom: 25px; white-space: pre-wrap; font-size: 14px; color: #555555;\">\n    {{$json.body.call.transcript || 'No transcript available.'}}\n  </div>\n  <div style=\"text-align: center; margin-top: 30px; margin-bottom: 20px;\">\n    <a href=\"{{$json.body.call.recording_url || '#'}}\" style=\"background-color: #3498db; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;\">🎧 Listen to Recording</a>\n  </div>\n</div>",
+        "options": {
+          "senderName": "[Your Name]"
+        }
+      },
+      "id": "7d2354b3-6d34-4982-92c4-1a0432fad98c",
+      "name": "Email Transcript2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2656, 2736],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CRED",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e28c0a44-4196-47e3-bf7a-56633064e22d",
+              "leftValue": "={{$json.body.event}}",
+              "rightValue": "call_analyzed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [2432, 2832],
+      "id": "4239ed05-005d-40fb-960e-f076d56d0f74",
+      "name": "If Call Analyzed1"
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@example.com",
+        "subject": "=New Outbound AI Call Transcript: {{$json.body.call.to_number}}",
+        "message": "=<div style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;\">\n  <h2 style=\"color: #2c3e50; border-bottom: 2px solid #eaeaea; padding-bottom: 10px;\">📞 New Call Report</h2>\n  <div style=\"background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;\">\n    <p style=\"margin: 0 0 8px 0; font-size: 16px;\"><strong>📱 Caller:</strong> {{$json.body.call.to_number}}</p>\n    <p style=\"margin: 0 0 8px 0; font-size: 16px;\"><strong>⚠️ Status:</strong> {{$json.body.call.call_status}}</p>\n    <p style=\"margin: 0; font-size: 16px;\"><strong>⏱️ Duration:</strong> {{$json.body.call.duration_ms}} ms</p>\n  </div>\n  <h3 style=\"color: #2c3e50; margin-bottom: 10px;\">📝 Call Summary</h3>\n  <div style=\"background-color: #eef2f5; padding: 15px; border-left: 4px solid #3498db; margin-bottom: 20px; border-radius: 0 8px 8px 0;\">\n    {{$json.body.call.call_analysis.call_summary || 'No summary available.'}}\n  </div>\n  <h3 style=\"color: #2c3e50; margin-bottom: 10px;\">💬 Transcript</h3>\n  <div style=\"background-color: #ffffff; padding: 15px; border: 1px solid #eaeaea; border-radius: 8px; margin-bottom: 25px; white-space: pre-wrap; font-size: 14px; color: #555555;\">\n    {{$json.body.call.transcript || 'No transcript available.'}}\n  </div>\n  <div style=\"text-align: center; margin-top: 30px; margin-bottom: 20px;\">\n    <a href=\"{{$json.body.call.recording_url || '#'}}\" style=\"background-color: #3498db; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;\">🎧 Listen to Recording</a>\n  </div>\n</div>",
+        "options": {
+          "senderName": "[Your Company]"
+        }
+      },
+      "id": "c3c82f0e-3ead-45dd-9f87-053459ddc61e",
+      "name": "Email Transcript3",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2656, 2928],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CRED",
+          "name": "Gmail account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: send_booking_email": {
+      "main": [[{"node": "Send Booking Email","type": "main","index": 0}]]
+    },
+    "Send Booking Email": {
+      "main": [[{"node": "Slack Alert (Email)","type": "main","index": 0}]]
+    },
+    "Webhook: notify_accounting": {
+      "main": [[{"node": "Email Accounting Team","type": "main","index": 0}]]
+    },
+    "Email Accounting Team": {
+      "main": [[{"node": "Email Accounting Team1","type": "main","index": 0}]]
+    },
+    "Webhook: send_booking_sms1": {
+      "main": [[{"node": "If","type": "main","index": 0}]]
+    },
+    "SMS (Caller ID)": {
+      "main": [[{"node": "Slack Alert (SMS)1","type": "main","index": 0}]]
+    },
+    "SMS (Custom Number)": {
+      "main": [[{"node": "Slack Alert (SMS)1","type": "main","index": 0}]]
+    },
+    "If": {
+      "main": [[{"node": "SMS (Custom Number)","type": "main","index": 0}], [{"node": "SMS (Caller ID)","type": "main","index": 0}]]
+    },
+    "Webhook: Call Ended1": {
+      "main": [[{"node": "If Call Analyzed1","type": "main","index": 0}]]
+    },
+    "If Call Analyzed1": {
+      "main": [[{"node": "Email Transcript2","type": "main","index": 0}, {"node": "Email Transcript3","type": "main","index": 0}]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
